@@ -29,9 +29,9 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createShop(String name, {String? location, String? address}) async {
+  Future<bool> createShop(String name, {String? location, String? address, int? ownerId}) async {
     try {
-      final shop = await _useCases.createShop(name, location: location, address: address);
+      final shop = await _useCases.createShop(name, location: location, address: address, ownerId: ownerId);
       _shops.add(shop);
       notifyListeners();
       return true;
@@ -42,9 +42,9 @@ class ShopProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateShop(int id, {String? name, String? location, String? address, bool? isActive}) async {
+  Future<bool> updateShop(int id, {String? name, String? location, String? address, bool? isActive, int? ownerId}) async {
     try {
-      final updated = await _useCases.updateShop(id, name: name, location: location, address: address, isActive: isActive);
+      final updated = await _useCases.updateShop(id, name: name, location: location, address: address, isActive: isActive, ownerId: ownerId);
       final idx = _shops.indexWhere((s) => s.id == id);
       if (idx != -1) _shops[idx] = updated;
       notifyListeners();

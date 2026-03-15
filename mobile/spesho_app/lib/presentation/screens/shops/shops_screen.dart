@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/network/api_client.dart';
+import '../../../data/datasources/auth_local_datasource.dart';
+import '../../../data/models/user_model.dart';
 import '../../../domain/entities/shop_entity.dart';
 
 class ShopsScreen extends StatefulWidget {
@@ -31,6 +34,7 @@ class _ShopsScreenState extends State<ShopsScreen> with SingleTickerProviderStat
   }
 
   void _showShopDialog({ShopEntity? shop}) {
+    final isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
     final nameCtrl = TextEditingController(text: shop?.name ?? '');
     final locationCtrl = TextEditingController(text: shop?.location ?? '');
     final addressCtrl = TextEditingController(text: shop?.address ?? '');
@@ -38,98 +42,41 @@ class _ShopsScreenState extends State<ShopsScreen> with SingleTickerProviderStat
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(shop == null ? Icons.add_business_rounded : Icons.edit_rounded,
-                color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Text(shop == null ? 'Add New Shop' : 'Edit Shop',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        ]),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextFormField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Shop Name *',
-                  prefixIcon: const Icon(Icons.store_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter shop name' : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: locationCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Location / Region',
-                  prefixIcon: const Icon(Icons.location_on_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: addressCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Address',
-                  prefixIcon: const Icon(Icons.map_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                maxLines: 2,
-              ),
-            ]),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            icon: Icon(shop == null ? Icons.add : Icons.save_rounded, size: 16),
-            label: Text(shop == null ? 'Add Shop' : 'Save'),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final prov = context.read<ShopProvider>();
-              bool ok;
-              if (shop == null) {
-                ok = await prov.createShop(
-                  nameCtrl.text.trim(),
-                  location: locationCtrl.text.trim().isEmpty ? null : locationCtrl.text.trim(),
-                  address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                );
-              } else {
-                ok = await prov.updateShop(
-                  shop.id,
-                  name: nameCtrl.text.trim(),
-                  location: locationCtrl.text.trim().isEmpty ? null : locationCtrl.text.trim(),
-                  address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                );
-              }
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-              if (!ok && ctx.mounted) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text(prov.error ?? 'Failed'), backgroundColor: AppTheme.error),
-                );
-              } else if (ok) {
-                _animCtrl.reset();
-                _animCtrl.forward();
-              }
-            },
-          ),
-        ],
+      builder: (ctx) => _ShopDialog(
+        shop: shop,
+        isSuperAdmin: isSuperAdmin,
+        nameCtrl: nameCtrl,
+        locationCtrl: locationCtrl,
+        addressCtrl: addressCtrl,
+        formKey: formKey,
+        onSave: (ownerId) async {
+          final prov = context.read<ShopProvider>();
+          bool ok;
+          if (shop == null) {
+            ok = await prov.createShop(
+              nameCtrl.text.trim(),
+              location: locationCtrl.text.trim().isEmpty ? null : locationCtrl.text.trim(),
+              address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+              ownerId: ownerId,
+            );
+          } else {
+            ok = await prov.updateShop(
+              shop.id,
+              name: nameCtrl.text.trim(),
+              location: locationCtrl.text.trim().isEmpty ? null : locationCtrl.text.trim(),
+              address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+              ownerId: ownerId,
+            );
+          }
+          if (ok) {
+            _animCtrl.reset();
+            _animCtrl.forward();
+          } else if (ctx.mounted) {
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(content: Text(prov.error ?? 'Failed'), backgroundColor: AppTheme.error),
+            );
+          }
+        },
       ),
     );
   }
@@ -296,6 +243,166 @@ class _ShopsScreenState extends State<ShopsScreen> with SingleTickerProviderStat
           itemBuilder: (_, __) => _ShimmerCard(),
         ),
       ),
+    );
+  }
+}
+
+// ── Shop dialog (with manager picker for super admin) ────────────────────────
+
+class _ShopDialog extends StatefulWidget {
+  final ShopEntity? shop;
+  final bool isSuperAdmin;
+  final TextEditingController nameCtrl;
+  final TextEditingController locationCtrl;
+  final TextEditingController addressCtrl;
+  final GlobalKey<FormState> formKey;
+  final void Function(int? ownerId) onSave;
+
+  const _ShopDialog({
+    required this.shop,
+    required this.isSuperAdmin,
+    required this.nameCtrl,
+    required this.locationCtrl,
+    required this.addressCtrl,
+    required this.formKey,
+    required this.onSave,
+  });
+
+  @override
+  State<_ShopDialog> createState() => _ShopDialogState();
+}
+
+class _ShopDialogState extends State<_ShopDialog> {
+  List<UserModel> _managers = [];
+  int? _selectedManagerId;
+  bool _loadingManagers = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isSuperAdmin) _loadManagers();
+  }
+
+  Future<void> _loadManagers() async {
+    setState(() => _loadingManagers = true);
+    try {
+      final api = ApiClient(AuthLocalDatasource());
+      final res = await api.get('/users/');
+      final all = (res['users'] as List).map((e) => UserModel.fromJson(e)).toList();
+      setState(() {
+        _managers = all.where((u) => u.role == 'manager' && u.isActive).toList();
+        // Pre-select current owner if editing
+        if (widget.shop?.ownerId != null) {
+          _selectedManagerId = widget.shop!.ownerId;
+        }
+      });
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingManagers = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shop = widget.shop;
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(shop == null ? Icons.add_business_rounded : Icons.edit_rounded,
+              color: Colors.white, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Text(shop == null ? 'Add New Shop' : 'Edit Shop',
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      ]),
+      content: SingleChildScrollView(
+        child: Form(
+          key: widget.formKey,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextFormField(
+              controller: widget.nameCtrl,
+              decoration: InputDecoration(
+                labelText: 'Shop Name *',
+                prefixIcon: const Icon(Icons.store_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter shop name' : null,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: widget.locationCtrl,
+              decoration: InputDecoration(
+                labelText: 'Location / Region',
+                prefixIcon: const Icon(Icons.location_on_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: widget.addressCtrl,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                prefixIcon: const Icon(Icons.map_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              maxLines: 2,
+            ),
+            // Manager assignment — super admin only
+            if (widget.isSuperAdmin) ...[
+              const SizedBox(height: 14),
+              _loadingManagers
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    )
+                  : DropdownButtonFormField<int?>(
+                      initialValue: _selectedManagerId,
+                      decoration: InputDecoration(
+                        labelText: 'Assign Manager (Owner) *',
+                        prefixIcon: const Icon(Icons.person_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('— Select manager —',
+                              style: TextStyle(color: Colors.grey)),
+                        ),
+                        ..._managers.map((m) => DropdownMenuItem<int?>(
+                              value: m.id,
+                              child: Text(m.displayName),
+                            )),
+                      ],
+                      validator: (v) => v == null ? 'Select a manager' : null,
+                      onChanged: (v) => setState(() => _selectedManagerId = v),
+                    ),
+            ],
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          icon: Icon(shop == null ? Icons.add : Icons.save_rounded, size: 16),
+          label: Text(shop == null ? 'Add Shop' : 'Save'),
+          onPressed: () async {
+            if (!widget.formKey.currentState!.validate()) return;
+            Navigator.pop(context);
+            widget.onSave(_selectedManagerId);
+          },
+        ),
+      ],
     );
   }
 }

@@ -16,22 +16,24 @@ class ShopRepository implements IShopRepository {
   }
 
   @override
-  Future<ShopEntity> createShop(String name, {String? location, String? address}) async {
+  Future<ShopEntity> createShop(String name, {String? location, String? address, int? ownerId}) async {
     final data = await _api.post('/shops/', {
       'name': name,
       if (location != null) 'location': location,
       if (address != null) 'address': address,
+      if (ownerId != null) 'owner_id': ownerId,
     });
     return ShopModel.fromJson(data['shop'] as Map<String, dynamic>);
   }
 
   @override
-  Future<ShopEntity> updateShop(int id, {String? name, String? location, String? address, bool? isActive}) async {
+  Future<ShopEntity> updateShop(int id, {String? name, String? location, String? address, bool? isActive, int? ownerId}) async {
     final data = await _api.put('/shops/$id', {
       if (name != null) 'name': name,
       if (location != null) 'location': location,
       if (address != null) 'address': address,
       if (isActive != null) 'is_active': isActive,
+      if (ownerId != null) 'owner_id': ownerId,
     });
     return ShopModel.fromJson(data['shop'] as Map<String, dynamic>);
   }
