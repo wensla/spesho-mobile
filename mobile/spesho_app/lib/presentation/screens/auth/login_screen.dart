@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/network/api_client.dart';
+import '../../../data/datasources/auth_local_datasource.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +17,35 @@ class _LoginScreenState extends State<LoginScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _serverReady = false;
+  String _serverStatus = 'Connecting to server...';
+
+  @override
+  void initState() {
+    super.initState();
+    _warmServer();
+  }
+
+  Future<void> _warmServer() async {
+    setState(() {
+      _serverReady = false;
+      _serverStatus = 'Connecting to server...';
+    });
+    final api = ApiClient(AuthLocalDatasource());
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        await api.get('/health').timeout(const Duration(seconds: 40));
+        if (mounted) setState(() { _serverReady = true; _serverStatus = ''; });
+        return;
+      } catch (_) {
+        if (attempt == 0 && mounted) {
+          setState(() => _serverStatus = 'Server is waking up, please wait...');
+        }
+      }
+    }
+    // Allow login attempt even if ping failed (server may still respond)
+    if (mounted) setState(() { _serverReady = true; _serverStatus = ''; });
+  }
 
   @override
   void dispose() {
@@ -278,26 +309,67 @@ class _LoginScreenState extends State<LoginScreen> {
               validator: (v) =>
                   v == null || v.isEmpty ? 'Enter password' : null,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
+
+            // Server warm-up status banner
+            if (!_serverReady || _serverStatus.isNotEmpty)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD4AA00).withValues(alpha: 0.5)),
+                ),
+                child: Row(children: [
+                  const SizedBox(
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Color(0xFFD4AA00)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _serverStatus,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF7A6000),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ]),
+              ),
+
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: auth.loading ? null : _login,
+                onPressed: (auth.loading || !_serverReady) ? null : _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AA00),
+                  disabledBackgroundColor: const Color(0xFFD4AA00).withValues(alpha: 0.6),
                   foregroundColor: Colors.black87,
+                  disabledForegroundColor: Colors.black54,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                   elevation: 0,
                 ),
-                child: auth.loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.black54),
-                      )
+                child: (auth.loading || !_serverReady)
+                    ? Row(mainAxisSize: MainAxisSize.min, children: [
+                        const SizedBox(
+                          height: 18, width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.black54),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          !_serverReady ? 'Starting server...' : 'Signing in...',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ])
                     : const Text(
                         'SIGN IN',
                         style: TextStyle(
