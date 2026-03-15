@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../widgets/user_avatar.dart';
 import '../../../data/datasources/auth_local_datasource.dart';
 import '../../../data/models/user_model.dart';
 import '../../providers/auth_provider.dart';
@@ -181,16 +182,16 @@ class _UsersScreenState extends State<UsersScreen> {
                 final u = _users[i];
                 return Card(
                   child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: u.isSuperAdmin
+                    leading: UserAvatar(
+                      username: u.username,
+                      displayName: u.displayName,
+                      radius: 22,
+                      showRing: true,
+                      ringColor: u.isSuperAdmin
                           ? AppTheme.error
                           : u.isManager
                               ? AppTheme.primary
                               : AppTheme.accent,
-                      child: Text(
-                        u.username[0].toUpperCase(),
-                        style: const TextStyle(color: Colors.white),
-                      ),
                     ),
                     title: Text(u.displayName,
                         style: const TextStyle(fontWeight: FontWeight.w600)),

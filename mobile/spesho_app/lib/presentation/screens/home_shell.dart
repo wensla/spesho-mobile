@@ -12,6 +12,7 @@ import '../screens/users/users_screen.dart';
 import '../screens/debts/debts_screen.dart';
 import '../screens/shops/shops_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../widgets/user_avatar.dart';
 
 class _NavItem {
   final IconData icon;
@@ -348,13 +349,11 @@ class _Sidebar extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: AppTheme.primary,
-                    radius: 18,
-                    child: Text(
-                      (user?.displayName ?? 'U')[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
+                  UserAvatar(
+                    username: user?.username ?? 'user',
+                    displayName: user?.displayName ?? 'U',
+                    radius: 20,
+                    showRing: true,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
