@@ -228,7 +228,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<ProductProvider>();
-    final isManager = context.watch<AuthProvider>().isManager;
+    final auth = context.watch<AuthProvider>();
+    final canManage = auth.isManager || auth.isSuperAdmin;
 
     return Scaffold(
       appBar: AppBar(
@@ -282,7 +283,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           ],
                         ),
                         isThreeLine: true,
-                        trailing: isManager
+                        trailing: canManage
                             ? PopupMenuButton(
                                 itemBuilder: (_) => [
                                   const PopupMenuItem(
@@ -311,7 +312,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 ),
                   ),
                 ),
-      floatingActionButton: isManager
+      floatingActionButton: canManage
           ? FloatingActionButton.extended(
               heroTag: 'products_fab',
               onPressed: () => _showProductDialog(),
