@@ -106,7 +106,15 @@ class _RecordSaleTabState extends State<_RecordSaleTab> {
   final _noteCtrl  = TextEditingController();
   final _nameCtrl  = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  DateTime _date   = DateTime.now();
+  DateTime _date          = DateTime.now();
+  String   _paymentMethod = 'cash';
+
+  static const _paymentMethods = [
+    ('cash',           'Cash',            Icons.payments_rounded),
+    ('mobile_money',   'Mobile Money',    Icons.phone_android_rounded),
+    ('bank_transfer',  'Bank Transfer',   Icons.account_balance_rounded),
+    ('credit',         'Credit',          Icons.credit_card_rounded),
+  ];
 
   @override
   void dispose() {
@@ -147,6 +155,7 @@ class _RecordSaleTabState extends State<_RecordSaleTab> {
       customerName:  _hasDebt ? _nameCtrl.text.trim() : null,
       customerPhone: _hasDebt ? _phoneCtrl.text.trim() : null,
       date:          DateFormat('yyyy-MM-dd').format(_date),
+      paymentMethod: _paymentMethod,
     );
 
     if (!mounted) return;
@@ -181,6 +190,7 @@ class _RecordSaleTabState extends State<_RecordSaleTab> {
       _nameCtrl.clear();
       _phoneCtrl.clear();
       _date = DateTime.now();
+      _paymentMethod = 'cash';
     });
     widget.onRecorded?.call();
   }
@@ -294,6 +304,55 @@ class _RecordSaleTabState extends State<_RecordSaleTab> {
                   ),
                 ],
               ]),
+            ),
+
+            const SizedBox(height: 10),
+
+            // ── Payment Method ────────────────────────────────────────────
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Payment Method',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _paymentMethods.map((m) {
+                      final selected = _paymentMethod == m.$1;
+                      return GestureDetector(
+                        onTap: () => setState(() => _paymentMethod = m.$1),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppTheme.primary.withValues(alpha: 0.12)
+                                : Colors.grey.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected ? AppTheme.primary : AppTheme.border,
+                              width: selected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(m.$3,
+                                size: 16,
+                                color: selected ? AppTheme.primary : AppTheme.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(m.$2,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                    color: selected ? AppTheme.primary : AppTheme.textSecondary)),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 10),

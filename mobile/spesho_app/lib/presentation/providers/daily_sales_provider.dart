@@ -24,6 +24,7 @@ class DailySalesProvider extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     String? date,
+    String paymentMethod = 'cash',
   }) async {
     loading = true;
     error = null;
@@ -37,6 +38,7 @@ class DailySalesProvider extends ChangeNotifier {
         customerName:  customerName,
         customerPhone: customerPhone,
         date:          date,
+        paymentMethod: paymentMethod,
       );
       successMessage = 'Sale recorded — TZS ${sale.totalAmount.toStringAsFixed(0)}';
       loading = false;

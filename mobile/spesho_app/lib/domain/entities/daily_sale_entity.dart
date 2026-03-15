@@ -9,6 +9,7 @@ class DailySaleEntity {
   final String? customerPhone;
   final String? recordedByName;
   final String createdAt;
+  final String paymentMethod;
 
   const DailySaleEntity({
     required this.id,
@@ -21,5 +22,6 @@ class DailySaleEntity {
     this.customerPhone,
     this.recordedByName,
     required this.createdAt,
+    this.paymentMethod = 'cash',
   });
 }

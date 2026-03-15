@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
-
 import '../../../data/datasources/auth_local_datasource.dart';
 import '../../../data/models/user_model.dart';
+import '../../providers/auth_provider.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -46,7 +47,19 @@ class _UsersScreenState extends State<UsersScreen> {
     final nameCtrl = TextEditingController(text: user?.fullName ?? '');
     final userCtrl = TextEditingController(text: user?.username ?? '');
     final passCtrl = TextEditingController();
-    String role = user?.role ?? 'salesperson';
+    final isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
+    // Normalise legacy role value
+    String role = (user?.role == 'salesperson') ? 'seller' : (user?.role ?? 'seller');
+    // Super admin can assign manager or seller; manager can only assign seller
+    final roleOptions = isSuperAdmin
+        ? const [
+            DropdownMenuItem(value: 'manager', child: Text('Manager')),
+            DropdownMenuItem(value: 'seller',  child: Text('Seller')),
+          ]
+        : const [
+            DropdownMenuItem(value: 'seller', child: Text('Seller')),
+          ];
+    if (!isSuperAdmin) role = 'seller';
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -93,16 +106,11 @@ class _UsersScreenState extends State<UsersScreen> {
                   },
                 ),
                 const SizedBox(height: 10),
+                // ignore: deprecated_member_use
                 DropdownButtonFormField<String>(
-                  // ignore: deprecated_member_use
                   value: role,
                   decoration: const InputDecoration(labelText: 'Role'),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'manager', child: Text('Manager')),
-                    DropdownMenuItem(
-                        value: 'salesperson', child: Text('Sales Person')),
-                  ],
+                  items: roleOptions,
                   onChanged: (v) => setS(() => role = v!),
                 ),
               ]),
@@ -174,9 +182,11 @@ class _UsersScreenState extends State<UsersScreen> {
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: u.isManager
-                          ? AppTheme.primary
-                          : AppTheme.accent,
+                      backgroundColor: u.isSuperAdmin
+                          ? AppTheme.error
+                          : u.isManager
+                              ? AppTheme.primary
+                              : AppTheme.accent,
                       child: Text(
                         u.username[0].toUpperCase(),
                         style: const TextStyle(color: Colors.white),
@@ -189,12 +199,13 @@ class _UsersScreenState extends State<UsersScreen> {
                       children: [
                         Text('@${u.username}'),
                         Chip(
-                          label: Text(
-                              u.isManager ? 'Manager' : 'Sales Person',
+                          label: Text(u.roleLabel,
                               style: const TextStyle(fontSize: 10)),
-                          backgroundColor: u.isManager
-                              ? AppTheme.primary.withValues(alpha: 0.1)
-                              : AppTheme.accent.withValues(alpha: 0.1),
+                          backgroundColor: u.isSuperAdmin
+                              ? AppTheme.error.withValues(alpha: 0.1)
+                              : u.isManager
+                                  ? AppTheme.primary.withValues(alpha: 0.1)
+                                  : AppTheme.accent.withValues(alpha: 0.1),
                           padding: EdgeInsets.zero,
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),

@@ -16,6 +16,7 @@ class DailySalesRepository {
         customerPhone:  m['customer_phone'],
         recordedByName: m['recorded_by_name'],
         createdAt:      m['created_at'],
+        paymentMethod:  m['payment_method'] ?? 'cash',
       );
 
   Future<DailySaleEntity> recordSale({
@@ -25,14 +26,16 @@ class DailySalesRepository {
     String? customerName,
     String? customerPhone,
     String? date,
+    String paymentMethod = 'cash',
   }) async {
     final res = await _api.post('/daily-sales/', {
-      'total_amount':   totalAmount,
-      'cash_paid':      cashPaid,
-      'note':           note,
-      'customer_name':  customerName,
-      'customer_phone': customerPhone,
-      'date':           date,
+      'total_amount':    totalAmount,
+      'cash_paid':       cashPaid,
+      'note':            note,
+      'customer_name':   customerName,
+      'customer_phone':  customerPhone,
+      'date':            date,
+      'payment_method':  paymentMethod,
     });
     return _fromMap(res['sale']);
   }
