@@ -1,4 +1,3 @@
-// No caching — unregister any existing service worker and clear all caches
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -8,6 +7,5 @@ self.addEventListener('activate', (event) => {
   );
 });
 self.addEventListener('fetch', (event) => {
-  // Pass all requests straight to the network — no caching
   event.respondWith(fetch(event.request));
 });
