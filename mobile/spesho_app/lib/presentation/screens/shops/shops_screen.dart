@@ -204,12 +204,12 @@ class _ShopsScreenState extends State<ShopsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildList(List<ShopEntity> shops, bool isSuperAdmin, bool isManager) {
-    // Super admin: group by owner
+    // Super admin: group by owner — only show shops that have a manager owner
     if (isSuperAdmin) {
       final Map<String, List<ShopEntity>> grouped = {};
       for (final s in shops) {
-        final key = s.ownerName ?? 'Unassigned';
-        grouped.putIfAbsent(key, () => []).add(s);
+        if (s.ownerName == null || s.ownerName!.isEmpty) continue; // skip unassigned
+        grouped.putIfAbsent(s.ownerName!, () => []).add(s);
       }
       final owners = grouped.keys.toList()..sort();
       return Align(
@@ -277,7 +277,8 @@ class _ShopsScreenState extends State<ShopsScreen> with SingleTickerProviderStat
         const Text('No shops yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Text(
-          isManager ? 'Tap "+ Add Shop" to create your first shop' : 'No shops found',
+          isManager ? 'Tap "+ Add Shop" to create your first shop'
+              : 'No shops with assigned managers yet',
           style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
         ),
       ]),
