@@ -7,6 +7,8 @@ class ShopModel extends ShopEntity {
     super.location,
     super.address,
     super.isActive,
+    super.ownerId,
+    super.ownerName,
   });
 
   factory ShopModel.fromJson(Map<String, dynamic> json) => ShopModel(
@@ -15,6 +17,8 @@ class ShopModel extends ShopEntity {
         location: json['location'] as String?,
         address: json['address'] as String?,
         isActive: json['is_active'] as bool? ?? true,
+        ownerId: json['owner_id'] as int?,
+        ownerName: json['owner_name'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -23,5 +27,7 @@ class ShopModel extends ShopEntity {
         'location': location,
         'address': address,
         'is_active': isActive,
+        'owner_id': ownerId,
+        'owner_name': ownerName,
       };
 }

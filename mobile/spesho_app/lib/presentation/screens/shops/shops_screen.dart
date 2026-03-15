@@ -115,7 +115,10 @@ class _ShopsScreenState extends State<ShopsScreen> {
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<ShopProvider>();
-    final isSuperAdmin = context.watch<AuthProvider>().isSuperAdmin;
+    final authProvider = context.watch<AuthProvider>();
+    final isSuperAdmin = authProvider.isSuperAdmin;
+    final isManager = authProvider.isManager;
+    final canManageShops = isSuperAdmin || isManager;
 
     return Scaffold(
       appBar: AppBar(
@@ -161,6 +164,16 @@ class _ShopsScreenState extends State<ShopsScreen> {
                                 if (s.address != null && s.address!.isNotEmpty)
                                   Text(s.address!,
                                       style: const TextStyle(fontSize: 11)),
+                                // Super admin sees owner name
+                                if (isSuperAdmin && s.ownerName != null && s.ownerName!.isNotEmpty)
+                                  Text(
+                                    'Owner: ${s.ownerName}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                               ],
                             ),
                             trailing: Row(
@@ -182,7 +195,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
                                     ),
                                   ),
                                 ),
-                                if (isSuperAdmin)
+                                if (canManageShops)
                                   PopupMenuButton(
                                     itemBuilder: (_) => [
                                       const PopupMenuItem(
@@ -192,7 +205,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
                                           title: Text('Edit'),
                                         ),
                                       ),
-                                      if (s.isActive)
+                                      if (isSuperAdmin && s.isActive)
                                         const PopupMenuItem(
                                           value: 'deactivate',
                                           child: ListTile(
@@ -201,7 +214,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
                                                 style: TextStyle(color: AppTheme.warning)),
                                           ),
                                         ),
-                                      if (!s.isActive)
+                                      if (isSuperAdmin && !s.isActive)
                                         const PopupMenuItem(
                                           value: 'activate',
                                           child: ListTile(
@@ -221,14 +234,16 @@ class _ShopsScreenState extends State<ShopsScreen> {
                                   ),
                               ],
                             ),
-                            isThreeLine: (s.location?.isNotEmpty == true || s.address?.isNotEmpty == true),
+                            isThreeLine: (s.location?.isNotEmpty == true ||
+                                s.address?.isNotEmpty == true ||
+                                (isSuperAdmin && s.ownerName?.isNotEmpty == true)),
                           ),
                         );
                       },
                     ),
                   ),
                 ),
-      floatingActionButton: isSuperAdmin
+      floatingActionButton: canManageShops
           ? FloatingActionButton.extended(
               heroTag: 'shops_fab',
               onPressed: () => _showShopDialog(),

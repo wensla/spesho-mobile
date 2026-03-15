@@ -4,6 +4,8 @@ class ShopEntity {
   final String? location;
   final String? address;
   final bool isActive;
+  final int? ownerId;
+  final String? ownerName;
 
   const ShopEntity({
     required this.id,
@@ -11,5 +13,7 @@ class ShopEntity {
     this.location,
     this.address,
     this.isActive = true,
+    this.ownerId,
+    this.ownerName,
   });
 }
