@@ -31807,8 +31807,8 @@ aXb(a,b,c,d,e,f){return new A.IF(f,a,b,c,!0,d,null)},
 b9E(a,b,c){var s,r,q,p,o
 for(s=new A.hv(B.c.cu(a.toLowerCase())),r=t.Hz,s=new A.br(s,s.gA(0),r.h("br<a7.E>")),r=r.h("a7.E"),q=0;s.v();){p=s.d
 if(p==null)p=r.a(p)
-q=q*31+p>>>0}o=B.f.b4(q,100)
-return"https://randomuser.me/api/portraits/"+(b==="female"?"women":"men")+"/"+o+".jpg"},
+q=q*31+p>>>0}o=B.f.b4(q,50)
+return"https://xsgames.co/randomusers/assets/avatars/"+(b==="female"?"female":"male")+"/"+o+".jpg"},
 IF:function IF(a,b,c,d,e,f,g){var _=this
 _.c=a
 _.d=b
