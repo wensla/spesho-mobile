@@ -9,6 +9,8 @@ class UserModel extends UserEntity {
     super.gender,
     super.isActive = true,
     super.shopIds = const [],
+    super.shopName,
+    super.shopLocation,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> j) => UserModel(
@@ -22,6 +24,8 @@ class UserModel extends UserEntity {
                 ?.map((e) => e as int)
                 .toList() ??
             [],
+        shopName: j['shop_name'] as String?,
+        shopLocation: j['shop_location'] as String?,
       );
 
   Map<String, dynamic> toJson() => {

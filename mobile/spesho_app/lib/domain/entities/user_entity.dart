@@ -6,6 +6,8 @@ class UserEntity {
   final String? gender; // 'male' | 'female' | null
   final bool isActive;
   final List<int> shopIds;
+  final String? shopName;
+  final String? shopLocation;
 
   const UserEntity({
     required this.id,
@@ -15,6 +17,8 @@ class UserEntity {
     this.gender,
     this.isActive = true,
     this.shopIds = const [],
+    this.shopName,
+    this.shopLocation,
   });
 
   bool get isSuperAdmin => role == 'super_admin';

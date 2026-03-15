@@ -217,17 +217,33 @@ class _UsersScreenState extends State<UsersScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('@${u.username}'),
-                        Chip(
-                          label: Text(u.roleLabel,
-                              style: const TextStyle(fontSize: 10)),
-                          backgroundColor: u.isSuperAdmin
-                              ? AppTheme.error.withValues(alpha: 0.1)
-                              : u.isManager
-                                  ? AppTheme.primary.withValues(alpha: 0.1)
-                                  : AppTheme.accent.withValues(alpha: 0.1),
-                          padding: EdgeInsets.zero,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
+                        if (u.isSeller && u.shopName != null)
+                          Row(children: [
+                            Icon(Icons.store_rounded, size: 12, color: Colors.grey[500]),
+                            const SizedBox(width: 3),
+                            Text(u.shopName!,
+                                style: TextStyle(fontSize: 12, color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500)),
+                            if (u.shopLocation != null) ...[
+                              const SizedBox(width: 6),
+                              Icon(Icons.location_on_rounded, size: 12, color: Colors.grey[400]),
+                              const SizedBox(width: 2),
+                              Text(u.shopLocation!,
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                            ],
+                          ])
+                        else
+                          Chip(
+                            label: Text(u.roleLabel,
+                                style: const TextStyle(fontSize: 10)),
+                            backgroundColor: u.isSuperAdmin
+                                ? AppTheme.error.withValues(alpha: 0.1)
+                                : u.isManager
+                                    ? AppTheme.primary.withValues(alpha: 0.1)
+                                    : AppTheme.accent.withValues(alpha: 0.1),
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                       ],
                     ),
                     isThreeLine: true,
