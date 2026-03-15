@@ -32551,12 +32551,12 @@ s=r+1}r=B.c.i_(a,b)
 while(r!==-1){q=r===0?0:B.c.Ef(a,"\n",r-1)+1
 if(c===r-q)return q
 r=B.c.kD(a,b,r+1)}return null},
-b8L(a,b,c){var s,r,q,p,o
-try{s=A.b8K(a,b)
-r=c==="female"?"male":"female"
-p=A.lc(s,'"',"")
-q=A.lc(p,"'","\\'")
-$.b1m().wL("eval",['(function(){\n          try {\n            var synth = window.speechSynthesis;\n            if (!synth) return;\n            synth.cancel();\n\n            function speak(voices) {\n              var chosen;\n              if ("'+A.o(r)+'" === "female") {\n                chosen = voices.find(function(v){\n                  return /female|zira|samantha|victoria|karen|moira/i.test(v.name)\n                      && /en/i.test(v.lang);\n                }) || voices.find(function(v){ return /en/i.test(v.lang); });\n              } else {\n                chosen = voices.find(function(v){\n                  return /\\bmale\\b|david|alex|daniel|mark|james|fred/i.test(v.name)\n                      && /en/i.test(v.lang);\n                }) || (voices.filter(function(v){ return /en/i.test(v.lang); })[1]\n                    || voices.find(function(v){ return /en/i.test(v.lang); }));\n              }\n\n              var u = new SpeechSynthesisUtterance(\''+A.o(q)+"');\n              u.lang   = 'en-US';\n              u.rate   = 0.88;\n              u.pitch  = \""+A.o(r)+'" === "female" ? 1.25 : 0.80;\n              u.volume = 1.0;\n              if (chosen) u.voice = chosen;\n              synth.speak(u);\n            }\n\n            var voices = synth.getVoices();\n            if (voices.length > 0) {\n              speak(voices);\n            } else {\n              synth.onvoiceschanged = function() { speak(synth.getVoices()); };\n            }\n          } catch(e) {}\n        })()'])}catch(o){}},
+b8L(a,b,c){var s,r,q,p
+try{q=A.b8K(a,b)
+q=A.lc(q,"'"," ")
+s=A.lc(q,'"'," ")
+r=c==="female"?0.75:1.3
+$.b1m().wL("eval",['(function(){\n          try {\n            var synth = window.speechSynthesis;\n            if (!synth) return;\n            synth.cancel();\n            var u = new SpeechSynthesisUtterance("'+A.o(s)+'");\n            u.lang   = "en-US";\n            u.rate   = 0.88;\n            u.pitch  = '+A.o(r)+";\n            u.volume = 1.0;\n            synth.speak(u);\n          } catch(e) {}\n        })()"])}catch(p){}},
 b8K(a,b){var s,r,q,p=B.b.ga_(a.split(" ")),o=A.ij(new A.bG(Date.now(),0,!1))
 if(o<12)s="Good morning"
 else s=o<17?"Good afternoon":"Good evening"
