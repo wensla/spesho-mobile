@@ -3,6 +3,7 @@ class UserEntity {
   final String username;
   final String role;
   final String? fullName;
+  final String? gender; // 'male' | 'female' | null
   final bool isActive;
   final List<int> shopIds;
 
@@ -11,6 +12,7 @@ class UserEntity {
     required this.username,
     required this.role,
     this.fullName,
+    this.gender,
     this.isActive = true,
     this.shopIds = const [],
   });
@@ -18,6 +20,8 @@ class UserEntity {
   bool get isSuperAdmin => role == 'super_admin';
   bool get isManager => role == 'manager';
   bool get isSeller => role == 'seller' || role == 'salesperson';
+  bool get isFemale => gender == 'female';
+  bool get isMale => gender == 'male';
 
   String get displayName =>
       fullName?.isNotEmpty == true ? fullName! : username;

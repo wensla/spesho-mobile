@@ -3,9 +3,9 @@ import 'dart:js' as js;
 
 /// Bilingual English welcome — female and male voices alternate.
 class SpeechService {
-  static void welcome(String name, String role) {
+  static void welcome(String name, String role, {String? gender}) {
     try {
-      final parts = _buildParts(name, role);
+      final parts = _buildParts(name, role, gender: gender);
 
       // Build JS array of {text, gender} objects
       final partsJs = parts
@@ -64,7 +64,7 @@ class SpeechService {
   }
 
   /// Returns list of (text, gender) pairs that alternate female → male → female…
-  static List<(String, String)> _buildParts(String name, String role) {
+  static List<(String, String)> _buildParts(String name, String role, {String? gender}) {
     final first = name.split(' ').first;
     final hour  = DateTime.now().hour;
 
@@ -92,12 +92,18 @@ class SpeechService {
       _             => 'Have a wonderful working day.',
     };
 
+    // If user is female → male voice greets her personally (opposite attracts)
+    // If user is male   → female voice greets him personally
+    // Unknown           → default female → male alternation
+    final personalVoice = gender == 'female' ? 'male' : 'female';
+    final responseVoice = gender == 'female' ? 'female' : 'male';
+
     return [
-      ('Welcome to Spesho!',                           'female'),
-      ('$timeGreet, $first.',                          'male'),
-      ('You are logged in as $roleDesc.',               'female'),
-      (closingF,                                        'male'),
-      (closingM,                                        'female'),
+      ('Welcome to Spesho!',                 responseVoice),
+      ('$timeGreet, $first.',                personalVoice),
+      ('You are logged in as $roleDesc.',    responseVoice),
+      (closingF,                             personalVoice),
+      (closingM,                             responseVoice),
     ];
   }
 }

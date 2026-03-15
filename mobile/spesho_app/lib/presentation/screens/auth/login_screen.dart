@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (ok) {
       final user = context.read<AuthProvider>().user;
       if (user != null) {
-        SpeechService.welcome(user.displayName, user.role);
+        SpeechService.welcome(user.displayName, user.role, gender: user.gender);
       }
       Navigator.pushReplacementNamed(context, '/home');
     } else {

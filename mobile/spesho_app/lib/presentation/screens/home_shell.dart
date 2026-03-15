@@ -352,6 +352,7 @@ class _Sidebar extends StatelessWidget {
                   UserAvatar(
                     username: user?.username ?? 'user',
                     displayName: user?.displayName ?? 'U',
+                    gender: user?.gender,
                     radius: 20,
                     showRing: true,
                   ),

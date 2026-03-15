@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 class UserAvatar extends StatefulWidget {
   final String username;
   final String displayName;
+  final String? gender;
   final double radius;
   final bool showRing;
   final Color? ringColor;
@@ -14,14 +15,24 @@ class UserAvatar extends StatefulWidget {
     super.key,
     required this.username,
     required this.displayName,
+    this.gender,
     this.radius = 20,
     this.showRing = false,
     this.ringColor,
   });
 
-  /// DiceBear adventurer-neutral SVG rendered as PNG
-  static String avatarUrl(String username, {int size = 80}) {
+  /// DiceBear adventurer avatar — gendered when gender is known
+  static String avatarUrl(String username, {int size = 80, String? gender}) {
     final seed = Uri.encodeComponent(username.toLowerCase().trim());
+    if (gender == 'female') {
+      return 'https://api.dicebear.com/9.x/adventurer/png'
+          '?seed=$seed&size=$size&sex[]=female'
+          '&backgroundColor=ffd5dc,ffdfbf,fecaca,fed7aa';
+    } else if (gender == 'male') {
+      return 'https://api.dicebear.com/9.x/adventurer/png'
+          '?seed=$seed&size=$size&sex[]=male'
+          '&backgroundColor=b6e3f4,c0aede,d1d4f9,bfdbfe';
+    }
     return 'https://api.dicebear.com/9.x/adventurer-neutral/png'
         '?seed=$seed&size=$size&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf';
   }
@@ -78,7 +89,7 @@ class _UserAvatarState extends State<UserAvatar>
           child: ClipOval(
             child: Image.network(
               UserAvatar.avatarUrl(widget.username,
-                  size: (widget.radius * 4).toInt()),
+                  size: (widget.radius * 4).toInt(), gender: widget.gender),
               width: size,
               height: size,
               fit: BoxFit.cover,

@@ -51,6 +51,7 @@ class _UsersScreenState extends State<UsersScreen> {
     final isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
     // Normalise legacy role value
     String role = (user?.role == 'salesperson') ? 'seller' : (user?.role ?? 'seller');
+    String? gender = user?.gender;
     // Super admin can assign manager or seller; manager can only assign seller
     final roleOptions = isSuperAdmin
         ? const [
@@ -114,6 +115,20 @@ class _UsersScreenState extends State<UsersScreen> {
                   items: roleOptions,
                   onChanged: (v) => setS(() => role = v!),
                 ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String?>(
+                  value: gender,
+                  decoration: const InputDecoration(
+                    labelText: 'Gender',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null,     child: Text('Not specified')),
+                    DropdownMenuItem(value: 'male',   child: Text('Male')),
+                    DropdownMenuItem(value: 'female', child: Text('Female')),
+                  ],
+                  onChanged: (v) => setS(() => gender = v),
+                ),
               ]),
             ),
           ),
@@ -131,11 +146,13 @@ class _UsersScreenState extends State<UsersScreen> {
                       'password': passCtrl.text,
                       'full_name': nameCtrl.text.trim(),
                       'role': role,
+                      'gender': gender,
                     });
                   } else {
                     final body = <String, dynamic>{
                       'full_name': nameCtrl.text.trim(),
                       'role': role,
+                      'gender': gender,
                     };
                     if (passCtrl.text.isNotEmpty) body['password'] = passCtrl.text;
                     await _api.put('/users/${user.id}', body);
@@ -185,6 +202,7 @@ class _UsersScreenState extends State<UsersScreen> {
                     leading: UserAvatar(
                       username: u.username,
                       displayName: u.displayName,
+                      gender: u.gender,
                       radius: 22,
                       showRing: true,
                       ringColor: u.isSuperAdmin
