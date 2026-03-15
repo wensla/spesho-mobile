@@ -1,0 +1,20 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.env
+backend/instance/
+
+# Flutter
+mobile/spesho_app/.dart_tool/
+mobile/spesho_app/build/
+mobile/spesho_app/.flutter-plugins
+mobile/spesho_app/.flutter-plugins-dependencies
+
+# APK
+*.apk
+
+# Misc
+*.log
+yes_input.txt
