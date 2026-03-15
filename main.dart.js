@@ -106997,13 +106997,13 @@ E(a){var s,r=this,q=null,p=A.ca(a,!0,t.AC),o=A.ca(a,!0,t.W0),n=o.gEa(),m=o.gNo()
 if(p.c)l=r.adk()
 else if(J.fm(p.b)){s=A.b([B.t.aD(0.15),B.t.aD(0.05)],t.W)
 s=A.aD(q,A.dC(B.jq,B.t.aD(0.5),q,44),B.k,q,q,new A.az(q,q,q,q,q,new A.eh(B.c5,B.dS,B.aC,s,q,q),B.cC),q,90,q,q,q,q,q,90)
-l=A.dK(A.aR(A.b([s,B.fx,B.a7n,B.aX,A.X(m?'Tap "+ Add Shop" to create your first shop':"No shops found",q,q,q,q,B.oo,q,q,q)],l),B.n,B.i,B.ab),q,q)}else l=r.adb(p.b,n,m)
+l=A.dK(A.aR(A.b([s,B.fx,B.a7n,B.aX,A.X(m?'Tap "+ Add Shop" to create your first shop':"No shops with assigned managers yet",q,q,q,q,B.oo,q,q,q)],l),B.n,B.i,B.ab),q,q)}else l=r.adb(p.b,n,m)
 return A.il(k,q,l,q,q,n||m?A.Sa(B.t,4,B.j,"shops_fab",B.O1,B.a6U,new A.aIt(r)):q)},
 adb(a,b,c){var s,r,q,p,o,n=null
 if(b){s=A.H(t.N,t.Nv)
 for(r=J.bo(a);r.v();){q=r.gP(r)
 p=q.r
-if(p==null)p="Unassigned"
+if(p==null||p.length===0)continue
 J.fl(s.c0(0,p,new A.aIg()),q)}r=s.$ti.h("bC<1>")
 o=A.Z(new A.bC(s,r),r.h("p.E"))
 B.b.jx(o)
