@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Animated avatar using DiceBear API — unique cartoon image per username.
-/// Shows initials as fallback while loading or on error.
+/// Animated avatar using real human portrait photos.
+/// Male users get a male photo, female users get a female photo.
+/// Photo index is derived from username so each user always gets the same photo.
 class UserAvatar extends StatefulWidget {
   final String username;
   final String displayName;
@@ -21,20 +22,17 @@ class UserAvatar extends StatefulWidget {
     this.ringColor,
   });
 
-  /// DiceBear adventurer avatar — gendered when gender is known
+  /// Real human portrait photo — gender-specific, consistent per username.
   static String avatarUrl(String username, {int size = 80, String? gender}) {
-    final seed = Uri.encodeComponent(username.toLowerCase().trim());
-    if (gender == 'female') {
-      return 'https://api.dicebear.com/9.x/adventurer/png'
-          '?seed=$seed&size=$size&sex[]=female'
-          '&backgroundColor=ffd5dc,ffdfbf,fecaca,fed7aa';
-    } else if (gender == 'male') {
-      return 'https://api.dicebear.com/9.x/adventurer/png'
-          '?seed=$seed&size=$size&sex[]=male'
-          '&backgroundColor=b6e3f4,c0aede,d1d4f9,bfdbfe';
+    // Hash username to a stable index 0–49
+    int hash = 0;
+    for (final c in username.toLowerCase().trim().codeUnits) {
+      hash = (hash * 31 + c) & 0xFFFFFFFF;
     }
-    return 'https://api.dicebear.com/9.x/adventurer-neutral/png'
-        '?seed=$seed&size=$size&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf';
+    final index = hash % 50;
+    final category = gender == 'female' ? 'female' : 'male';
+    // xsgames.co serves real human face photos with CORS headers
+    return 'https://xsgames.co/randomusers/assets/avatars/$category/$index.jpg';
   }
 
   @override
