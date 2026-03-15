@@ -42,9 +42,10 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(Icons.people_rounded, 'Users'),
   ];
 
-  // Manager: shop-level operations
+  // Manager: shop-level operations (owns shops)
   static const _managerNavItems = [
     _NavItem(Icons.dashboard_rounded, 'Dashboard'),
+    _NavItem(Icons.store_rounded, 'Shops'),
     _NavItem(Icons.inventory_2_rounded, 'Products'),
     _NavItem(Icons.point_of_sale_rounded, 'Sales'),
     _NavItem(Icons.add_box_rounded, 'Stock In'),
@@ -74,6 +75,7 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _managerPages = [
     DashboardScreen(),
+    ShopsScreen(),
     ProductsScreen(),
     SalesScreen(),
     StockInScreen(),
