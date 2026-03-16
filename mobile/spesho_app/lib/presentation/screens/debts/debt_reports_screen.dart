@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../data/datasources/auth_local_datasource.dart';
 import '../../../data/repositories/reports_repository.dart';
 import '../../providers/debt_provider.dart';
+import '../../widgets/live_badge.dart';
 import '../../../domain/entities/debt_entity.dart';
 
 class DebtReportsScreen extends StatefulWidget {
@@ -19,19 +21,29 @@ class _DebtReportsScreenState extends State<DebtReportsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
   late ReportsRepository _repo;
+  Timer? _timer;
+  DateTime? _lastUpdated;
+
+  static const _refreshInterval = Duration(seconds: 60);
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
     _repo = ReportsRepository(ApiClient(AuthLocalDatasource()));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DebtProvider>().loadReports();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _timer = Timer.periodic(_refreshInterval, (_) => _load());
+  }
+
+  void _load() {
+    context.read<DebtProvider>().loadReports().then((_) {
+      if (mounted) setState(() => _lastUpdated = DateTime.now());
     });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _tabs.dispose();
     super.dispose();
   }
@@ -108,6 +120,11 @@ class _DebtReportsScreenState extends State<DebtReportsScreen>
           if (r == null) return const SizedBox();
 
           return Column(children: [
+            // Live indicator
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              child: LiveBadge(lastUpdated: _lastUpdated, interval: _refreshInterval),
+            ),
             // Today's summary banner
             _TodayBanner(newDebts: r.todayNewDebts, collected: r.todayCollected),
 

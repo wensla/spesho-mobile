@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
@@ -5,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/utils/format_utils.dart';
 import '../../../data/datasources/auth_local_datasource.dart';
 import '../../../data/repositories/reports_repository.dart';
+import '../../widgets/live_badge.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -74,8 +76,23 @@ class _SalesReportTabState extends State<_SalesReportTab> {
   SalesSummaryReport? _report;
   List<PaymentMethodBreakdown> _payBreakdown = [];
   String? _error;
+  DateTime? _lastUpdated;
+  Timer? _timer;
 
-  @override void initState() { super.initState(); _load(); }
+  static const _refreshInterval = Duration(seconds: 30);
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _timer = Timer.periodic(_refreshInterval, (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   (String, String) get _range {
     switch (_period) {
@@ -105,7 +122,7 @@ class _SalesReportTabState extends State<_SalesReportTab> {
       final (endpoint, query) = _payEndpoint();
       final pb = await widget.repo.getPaymentBreakdown(endpoint: endpoint, query: query);
 
-      setState(() { _report = r; _payBreakdown = pb; _loading = false; });
+      setState(() { _report = r; _payBreakdown = pb; _loading = false; _lastUpdated = DateTime.now(); });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
@@ -208,7 +225,9 @@ class _SalesReportTabState extends State<_SalesReportTab> {
                 ),
               ));
             }).toList()),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            LiveBadge(lastUpdated: _lastUpdated, interval: _refreshInterval),
+            const SizedBox(height: 8),
             // Date picker row + export buttons
             Row(children: [
               Expanded(child: _Card(child: InkWell(
@@ -383,14 +402,29 @@ class _StockReportTabState extends State<_StockReportTab> {
   bool _loading = false;
   List<StockBalanceItem> _items = [];
   String? _error;
+  DateTime? _lastUpdated;
+  Timer? _timer;
 
-  @override void initState() { super.initState(); _load(); }
+  static const _refreshInterval = Duration(seconds: 30);
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _timer = Timer.periodic(_refreshInterval, (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
       _items = await widget.repo.getStockBalance();
-      setState(() => _loading = false);
+      setState(() { _loading = false; _lastUpdated = DateTime.now(); });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
@@ -420,6 +454,7 @@ class _StockReportTabState extends State<_StockReportTab> {
                 IconButton(icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary), onPressed: _load),
               ]),
             ]),
+            LiveBadge(lastUpdated: _lastUpdated, interval: _refreshInterval),
             const SizedBox(height: 8),
             if (_loading)
               const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
