@@ -31710,8 +31710,8 @@ aWV(a,b,c,d,e,f){return new A.It(f,a,b,c,!0,d,null)},
 b9d(a,b,c){var s,r,q,p,o
 for(s=new A.hq(B.c.ct(a.toLowerCase())),r=t.Hz,s=new A.bq(s,s.gA(0),r.h("bq<a8.E>")),r=r.h("a8.E"),q=0;s.v();){p=s.d
 if(p==null)p=r.a(p)
-q=q*31+p>>>0}o=B.f.b4(q,50)
-return"https://xsgames.co/randomusers/assets/avatars/"+(b==="female"?"female":"male")+"/"+o+".jpg"},
+q=q*31+p>>>0}o=B.f.b4(q,99)
+return"https://randomuser.me/api/portraits/"+(b==="female"?"women":"men")+"/"+o+".jpg"},
 It:function It(a,b,c,d,e,f,g){var _=this
 _.c=a
 _.d=b
