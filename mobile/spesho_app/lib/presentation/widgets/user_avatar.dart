@@ -24,15 +24,15 @@ class UserAvatar extends StatefulWidget {
 
   /// Real human portrait photo — gender-specific, consistent per username.
   static String avatarUrl(String username, {int size = 80, String? gender}) {
-    // Hash username to a stable index 0–49
+    // Hash username to a stable index 0–99
     int hash = 0;
     for (final c in username.toLowerCase().trim().codeUnits) {
       hash = (hash * 31 + c) & 0xFFFFFFFF;
     }
-    final index = hash % 50;
-    final category = gender == 'female' ? 'female' : 'male';
-    // xsgames.co serves real human face photos with CORS headers
-    return 'https://xsgames.co/randomusers/assets/avatars/$category/$index.jpg';
+    final index = hash % 99;
+    final category = gender == 'female' ? 'women' : 'men';
+    // randomuser.me portraits: real human face photos, CORS-safe for Flutter web
+    return 'https://randomuser.me/api/portraits/$category/$index.jpg';
   }
 
   @override
