@@ -16,6 +16,7 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   late final ApiClient _api;
+  late final bool _isSuperAdmin;
   List<UserModel> _users = [];
   bool _loading = true;
 
@@ -23,6 +24,7 @@ class _UsersScreenState extends State<UsersScreen> {
   void initState() {
     super.initState();
     _api = ApiClient(AuthLocalDatasource());
+    _isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
     _load();
   }
 
@@ -48,21 +50,12 @@ class _UsersScreenState extends State<UsersScreen> {
     final nameCtrl = TextEditingController(text: user?.fullName ?? '');
     final userCtrl = TextEditingController(text: user?.username ?? '');
     final passCtrl = TextEditingController();
-    final isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
-    String role = (user?.role == 'salesperson') ? 'seller' : (user?.role ?? 'seller');
     String? gender = user?.gender;
-
-    final roleOptions = isSuperAdmin
-        ? const [
-            DropdownMenuItem(value: 'super_admin', child: Text('Super Admin')),
-            DropdownMenuItem(value: 'manager', child: Text('Manager')),
-            DropdownMenuItem(value: 'seller', child: Text('Seller')),
-          ]
-        : const [
-            DropdownMenuItem(value: 'seller', child: Text('Seller')),
-          ];
-    if (!isSuperAdmin) role = 'seller';
     final formKey = GlobalKey<FormState>();
+
+    // SRS: super admin registers managers, manager registers sellers
+    final fixedRole = _isSuperAdmin ? 'manager' : 'seller';
+    final roleLabel = _isSuperAdmin ? 'Manager' : 'Seller';
 
     showDialog(
       context: context,
@@ -72,13 +65,35 @@ class _UsersScreenState extends State<UsersScreen> {
             Icon(user == null ? Icons.person_add : Icons.edit,
                 color: AppTheme.primary, size: 22),
             const SizedBox(width: 8),
-            Text(user == null ? 'Add User' : 'Edit User'),
+            Text(user == null ? 'Register $roleLabel' : 'Edit $roleLabel'),
           ]),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                if (user == null)
+                // Role badge (read-only display)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: (_isSuperAdmin ? AppTheme.primary : AppTheme.accent)
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.admin_panel_settings_outlined,
+                        size: 16,
+                        color: _isSuperAdmin ? AppTheme.primary : AppTheme.accent),
+                    const SizedBox(width: 6),
+                    Text('Role: $roleLabel',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: _isSuperAdmin ? AppTheme.primary : AppTheme.accent,
+                        )),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                if (user == null) ...[
                   TextFormField(
                     controller: userCtrl,
                     decoration: const InputDecoration(
@@ -91,7 +106,8 @@ class _UsersScreenState extends State<UsersScreen> {
                       return null;
                     },
                   ),
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                ],
                 TextFormField(
                   controller: nameCtrl,
                   decoration: const InputDecoration(
@@ -114,16 +130,6 @@ class _UsersScreenState extends State<UsersScreen> {
                     if (v != null && v.isNotEmpty && v.length < 6) return 'At least 6 characters';
                     return null;
                   },
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: role,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-                  ),
-                  items: roleOptions,
-                  onChanged: (v) => setS(() => role = v!),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String?>(
@@ -155,13 +161,12 @@ class _UsersScreenState extends State<UsersScreen> {
                       'username': userCtrl.text.trim(),
                       'password': passCtrl.text,
                       'full_name': nameCtrl.text.trim(),
-                      'role': role,
+                      'role': fixedRole,
                       'gender': gender,
                     });
                   } else {
                     final body = <String, dynamic>{
                       'full_name': nameCtrl.text.trim(),
-                      'role': role,
                       'gender': gender,
                     };
                     if (passCtrl.text.isNotEmpty) body['password'] = passCtrl.text;
@@ -173,11 +178,13 @@ class _UsersScreenState extends State<UsersScreen> {
                 } catch (e) {
                   if (!ctx.mounted) return;
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+                    SnackBar(
+                        content: Text(e.toString()),
+                        backgroundColor: AppTheme.error),
                   );
                 }
               },
-              child: Text(user == null ? 'Add' : 'Update'),
+              child: Text(user == null ? 'Register' : 'Update'),
             ),
           ],
         ),
@@ -185,20 +192,59 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-
-  Future<void> _deleteUser(UserModel u) async {
+  // SRS 3.1 — Super Admin: Activate / Deactivate manager accounts
+  Future<void> _toggleActive(UserModel u) async {
+    final activate = !u.isActive;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete User?'),
-        content: Text(
-            'This will permanently delete "${u.displayName}". This cannot be undone.'),
+        title: Text(activate ? 'Activate Manager?' : 'Deactivate Manager?'),
+        content: Text(activate
+            ? '${u.displayName} will be able to log in again.'
+            : '${u.displayName} will not be able to log in.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: activate ? Colors.green : Colors.orange,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(activate ? 'Activate' : 'Deactivate',
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _api.post('/users/${u.id}/toggle-active', {});
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+        );
+      }
+    }
+  }
+
+  // SRS 3.2 — Manager: Remove seller
+  Future<void> _deleteSeller(UserModel u) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Seller?'),
+        content: Text('Remove "${u.displayName}" from your team?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -216,17 +262,13 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  Color _roleColor(UserModel u) {
-    if (u.isSuperAdmin) return AppTheme.error;
-    if (u.isManager) return AppTheme.primary;
-    return AppTheme.accent;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final title = _isSuperAdmin ? 'Managers' : 'My Sellers';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Users'),
+        title: Text(title),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
@@ -234,47 +276,57 @@ class _UsersScreenState extends State<UsersScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _users.isEmpty
-              ? const Center(
-                  child: Text('No users found.',
-                      style: TextStyle(color: AppTheme.textSecondary)))
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      _isSuperAdmin
+                          ? 'No managers yet.\nTap + to register a manager.'
+                          : 'No sellers yet.\nTap + to register a seller.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[500], fontSize: 15),
+                    ),
+                  ]),
+                )
               : Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 80),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 90),
                       itemCount: _users.length,
                       itemBuilder: (_, i) {
                         final u = _users[i];
-                        final roleColor = _roleColor(u);
+                        final roleColor =
+                            u.isManager ? AppTheme.primary : AppTheme.accent;
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: ListTile(
                             contentPadding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-                            leading: Stack(
-                              children: [
-                                UserAvatar(
-                                  username: u.username,
-                                  displayName: u.displayName,
-                                  gender: u.gender,
-                                  radius: 24,
-                                  showRing: true,
-                                  ringColor: roleColor,
-                                ),
-                                if (!u.isActive)
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: const BoxDecoration(
-                                          color: Colors.white, shape: BoxShape.circle),
-                                      child: const Icon(Icons.block,
-                                          size: 12, color: Colors.red),
-                                    ),
+                            leading: Stack(children: [
+                              UserAvatar(
+                                username: u.username,
+                                displayName: u.displayName,
+                                gender: u.gender,
+                                radius: 24,
+                                showRing: true,
+                                ringColor: roleColor,
+                              ),
+                              if (!u.isActive)
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle),
+                                    child: const Icon(Icons.block,
+                                        size: 12, color: Colors.red),
                                   ),
-                              ],
-                            ),
+                                ),
+                            ]),
                             title: Row(children: [
                               Expanded(
                                 child: Text(u.displayName,
@@ -284,17 +336,21 @@ class _UsersScreenState extends State<UsersScreen> {
                                     )),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: roleColor.withValues(alpha: 0.12),
+                                  color: (u.isActive ? roleColor : Colors.red)
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  u.roleLabel,
+                                  u.isActive ? u.roleLabel : 'Inactive',
                                   style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color: roleColor),
+                                      color: u.isActive
+                                          ? roleColor
+                                          : Colors.red[400]),
                                 ),
                               ),
                             ]),
@@ -306,7 +362,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                         color: u.isActive
                                             ? AppTheme.textSecondary
                                             : Colors.grey[400])),
-                                if (u.isSeller && u.shopName != null)
+                                if (!u.isManager && u.shopName != null)
                                   Row(children: [
                                     Icon(Icons.store_rounded,
                                         size: 12, color: Colors.grey[500]),
@@ -323,15 +379,10 @@ class _UsersScreenState extends State<UsersScreen> {
                                       const SizedBox(width: 2),
                                       Text(u.shopLocation!,
                                           style: TextStyle(
-                                              fontSize: 11, color: Colors.grey[500])),
+                                              fontSize: 11,
+                                              color: Colors.grey[500])),
                                     ],
                                   ]),
-                                if (!u.isActive)
-                                  const Text('Inactive',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.w500)),
                               ],
                             ),
                             isThreeLine: true,
@@ -344,12 +395,29 @@ class _UsersScreenState extends State<UsersScreen> {
                                   tooltip: 'Edit',
                                   onPressed: () => _showUserDialog(user: u),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline,
-                                      color: Colors.red),
-                                  tooltip: 'Delete',
-                                  onPressed: () => _deleteUser(u),
-                                ),
+                                // SRS 3.1: Super Admin activate/deactivate
+                                if (_isSuperAdmin)
+                                  IconButton(
+                                    icon: Icon(
+                                      u.isActive
+                                          ? Icons.person_off_outlined
+                                          : Icons.person_outlined,
+                                      color: u.isActive
+                                          ? Colors.orange
+                                          : Colors.green,
+                                    ),
+                                    tooltip: u.isActive ? 'Deactivate' : 'Activate',
+                                    onPressed: () => _toggleActive(u),
+                                  ),
+                                // SRS 3.2: Manager remove seller
+                                if (!_isSuperAdmin)
+                                  IconButton(
+                                    icon: const Icon(
+                                        Icons.person_remove_outlined,
+                                        color: Colors.red),
+                                    tooltip: 'Remove Seller',
+                                    onPressed: () => _deleteSeller(u),
+                                  ),
                               ],
                             ),
                           ),
@@ -364,7 +432,7 @@ class _UsersScreenState extends State<UsersScreen> {
         backgroundColor: const Color(0xFFD4AA00),
         foregroundColor: Colors.black87,
         icon: const Icon(Icons.person_add),
-        label: const Text('Add User'),
+        label: Text(_isSuperAdmin ? 'Register Manager' : 'Register Seller'),
       ),
     );
   }
