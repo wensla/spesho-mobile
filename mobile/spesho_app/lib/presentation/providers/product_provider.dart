@@ -29,9 +29,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createProduct(String name, double price, {int packageSize = 5, String category = 'unga'}) async {
+  Future<bool> createProduct(String name, double price, {int packageSize = 5, String category = 'unga', double? buyingPrice}) async {
     try {
-      final p = await _useCases.createProduct(name, price, packageSize: packageSize, category: category);
+      final p = await _useCases.createProduct(name, price, packageSize: packageSize, category: category, buyingPrice: buyingPrice);
       _products.add(p);
       notifyListeners();
       return true;
@@ -42,9 +42,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateProduct(int id, {String? name, double? price, int? packageSize, String? category}) async {
+  Future<bool> updateProduct(int id, {String? name, double? price, int? packageSize, String? category, double? buyingPrice}) async {
     try {
-      final updated = await _useCases.updateProduct(id, name: name, price: price, packageSize: packageSize, category: category);
+      final updated = await _useCases.updateProduct(id, name: name, price: price, packageSize: packageSize, category: category, buyingPrice: buyingPrice);
       final idx = _products.indexWhere((p) => p.id == id);
       if (idx != -1) _products[idx] = updated;
       notifyListeners();

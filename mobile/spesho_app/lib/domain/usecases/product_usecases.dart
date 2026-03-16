@@ -11,15 +11,15 @@ class GetProductsUseCase {
 class CreateProductUseCase {
   final IProductRepository _repo;
   CreateProductUseCase(this._repo);
-  Future<ProductEntity> call(String name, double price, {int packageSize = 5, String category = 'unga'}) =>
-      _repo.createProduct(name, price, packageSize: packageSize, category: category);
+  Future<ProductEntity> call(String name, double price, {int packageSize = 5, String category = 'unga', double? buyingPrice}) =>
+      _repo.createProduct(name, price, packageSize: packageSize, category: category, buyingPrice: buyingPrice);
 }
 
 class UpdateProductUseCase {
   final IProductRepository _repo;
   UpdateProductUseCase(this._repo);
-  Future<ProductEntity> call(int id, {String? name, double? price, int? packageSize, String? category}) =>
-      _repo.updateProduct(id, name: name, price: price, packageSize: packageSize, category: category);
+  Future<ProductEntity> call(int id, {String? name, double? price, int? packageSize, String? category, double? buyingPrice}) =>
+      _repo.updateProduct(id, name: name, price: price, packageSize: packageSize, category: category, buyingPrice: buyingPrice);
 }
 
 class DeleteProductUseCase {

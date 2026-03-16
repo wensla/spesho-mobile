@@ -110,10 +110,12 @@ class _RecordSaleTabState extends State<_RecordSaleTab> {
   String   _paymentMethod = 'cash';
 
   static const _paymentMethods = [
-    ('cash',           'Cash',            Icons.payments_rounded),
-    ('mobile_money',   'Mobile Money',    Icons.phone_android_rounded),
-    ('bank_transfer',  'Bank Transfer',   Icons.account_balance_rounded),
-    ('credit',         'Credit',          Icons.credit_card_rounded),
+    ('cash',          'Cash',          Icons.payments_rounded),
+    ('mpesa',         'M-Pesa',        Icons.phone_android_rounded),
+    ('tigopesa',      'Tigo Pesa',     Icons.phone_android_rounded),
+    ('airtel_money',  'Airtel Money',  Icons.phone_android_rounded),
+    ('bank_transfer', 'Bank Transfer', Icons.account_balance_rounded),
+    ('credit',        'Credit',        Icons.credit_card_rounded),
   ];
 
   @override

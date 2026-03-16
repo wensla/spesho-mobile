@@ -72,6 +72,7 @@ class _SalesReportTabState extends State<_SalesReportTab> {
   DateTime _date  = DateTime.now();
   bool _loading   = false;
   SalesSummaryReport? _report;
+  List<PaymentMethodBreakdown> _payBreakdown = [];
   String? _error;
 
   @override void initState() { super.initState(); _load(); }
@@ -99,9 +100,56 @@ class _SalesReportTabState extends State<_SalesReportTab> {
     try {
       final (sd, ed) = _range;
       final r = await widget.repo.getSalesSummary(startDate: sd, endDate: ed);
-      setState(() { _report = r; _loading = false; });
+
+      // Fetch payment breakdown from the period-specific endpoint
+      final (endpoint, query) = _payEndpoint();
+      final pb = await widget.repo.getPaymentBreakdown(endpoint: endpoint, query: query);
+
+      setState(() { _report = r; _payBreakdown = pb; _loading = false; });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  (String, Map<String, String>) _payEndpoint() {
+    switch (_period) {
+      case _Period.daily:
+        return ('/reports/daily', {'date': DateFormat('yyyy-MM-dd').format(_date)});
+      case _Period.weekly:
+        final mon = _date.subtract(Duration(days: _date.weekday - 1));
+        return ('/reports/weekly', {'week_start': DateFormat('yyyy-MM-dd').format(mon)});
+      case _Period.monthly:
+        return ('/reports/monthly', {'month': '${_date.month}', 'year': '${_date.year}'});
+      case _Period.yearly:
+        return ('/reports/yearly', {'year': '${_date.year}'});
+    }
+  }
+
+  String _pdfUrl() {
+    switch (_period) {
+      case _Period.daily:
+        return widget.repo.buildUrl('/reports/daily/pdf?date=${DateFormat('yyyy-MM-dd').format(_date)}');
+      case _Period.weekly:
+        final mon = _date.subtract(Duration(days: _date.weekday - 1));
+        return widget.repo.buildUrl('/reports/weekly/pdf?week_start=${DateFormat('yyyy-MM-dd').format(mon)}');
+      case _Period.monthly:
+        return widget.repo.buildUrl('/reports/monthly/pdf?month=${_date.month}&year=${_date.year}');
+      case _Period.yearly:
+        return widget.repo.buildUrl('/reports/yearly/pdf?year=${_date.year}');
+    }
+  }
+
+  String _csvUrl() {
+    switch (_period) {
+      case _Period.daily:
+        return widget.repo.buildUrl('/reports/daily/csv?date=${DateFormat('yyyy-MM-dd').format(_date)}');
+      case _Period.weekly:
+        final mon = _date.subtract(Duration(days: _date.weekday - 1));
+        return widget.repo.buildUrl('/reports/weekly/csv?week_start=${DateFormat('yyyy-MM-dd').format(mon)}');
+      case _Period.monthly:
+        return widget.repo.buildUrl('/reports/monthly/csv?month=${_date.month}&year=${_date.year}');
+      case _Period.yearly:
+        return widget.repo.buildUrl('/reports/yearly/csv?year=${_date.year}');
     }
   }
 
@@ -139,6 +187,7 @@ class _SalesReportTabState extends State<_SalesReportTab> {
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(padding: const EdgeInsets.all(16), children: [
+            // Period selector
             Row(children: _Period.values.map((p) {
               final sel = p == _period;
               return Expanded(child: Padding(
@@ -160,15 +209,22 @@ class _SalesReportTabState extends State<_SalesReportTab> {
               ));
             }).toList()),
             const SizedBox(height: 10),
-            _Card(child: InkWell(
-              onTap: _pick,
-              child: Row(children: [
-                const Icon(Icons.calendar_today_rounded, size: 18, color: AppTheme.primary),
-                const SizedBox(width: 10),
-                Expanded(child: Text(_rangeLabel, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
-                const Icon(Icons.edit_calendar_rounded, size: 16, color: AppTheme.textSecondary),
-              ]),
-            )),
+            // Date picker row + export buttons
+            Row(children: [
+              Expanded(child: _Card(child: InkWell(
+                onTap: _pick,
+                child: Row(children: [
+                  const Icon(Icons.calendar_today_rounded, size: 18, color: AppTheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_rangeLabel, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
+                  const Icon(Icons.edit_calendar_rounded, size: 16, color: AppTheme.textSecondary),
+                ]),
+              ))),
+              const SizedBox(width: 8),
+              _ExportBtn(label: 'PDF', icon: Icons.picture_as_pdf_rounded, color: Colors.red, url: _pdfUrl()),
+              const SizedBox(width: 6),
+              _ExportBtn(label: 'CSV', icon: Icons.table_chart_rounded, color: Colors.green, url: _csvUrl()),
+            ]),
             const SizedBox(height: 10),
             if (_loading)
               const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
@@ -184,6 +240,31 @@ class _SalesReportTabState extends State<_SalesReportTab> {
                   Expanded(child: _TotCard(label: 'Total Debt', value: 'TZS ${FormatUtils.currency(_report!.grandDebt)}', icon: Icons.account_balance_wallet_rounded, color: AppTheme.warning)),
                 ],
               ]),
+              // Payment method breakdown
+              if (_payBreakdown.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Payment Methods', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 6, children: _payBreakdown.map((pb) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(pb.method, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                        const SizedBox(width: 6),
+                        Text('TZS ${FormatUtils.currency(pb.total)}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        Text(' (${pb.count})', style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                      ]),
+                    );
+                  }).toList()),
+                ])),
+              ],
               const SizedBox(height: 12),
               if (_report!.days.isEmpty)
                 const _Card(child: Column(children: [
@@ -245,6 +326,52 @@ class _SalesReportTabState extends State<_SalesReportTab> {
   }
 }
 
+// ── Export button (opens URL in browser / download) ───────────────────────────
+class _ExportBtn extends StatelessWidget {
+  final String label, url;
+  final IconData icon;
+  final Color color;
+  const _ExportBtn({required this.label, required this.icon, required this.color, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(icon, size: 15),
+      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      onPressed: () => _openUrl(context, url),
+    );
+  }
+
+  void _openUrl(BuildContext context, String url) {
+    // Show a dialog with the URL for the user to open/copy
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text('Download $label')]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Open this link in your browser to download the $label report:',
+              style: const TextStyle(fontSize: 13)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
+            child: SelectableText(url, style: const TextStyle(fontSize: 11, color: AppTheme.primary)),
+          ),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      ),
+    );
+  }
+}
+
+// ── Stock report tab ──────────────────────────────────────────────────────────
 class _StockReportTab extends StatefulWidget {
   final ReportsRepository repo;
   const _StockReportTab({required this.repo});
@@ -271,8 +398,12 @@ class _StockReportTabState extends State<_StockReportTab> {
 
   @override
   Widget build(BuildContext context) {
-    final totalValue = _items.fold(0.0, (s, e) => s + e.stockValue);
-    final totalPkgs  = _items.fold(0.0, (s, e) => s + e.packages);
+    final totalValue   = _items.fold(0.0, (s, e) => s + e.stockValue);
+    final totalPkgs    = _items.fold(0.0, (s, e) => s + e.packages);
+    final hasCost      = _items.any((e) => e.buyingPrice != null);
+    final pdfUrl       = widget.repo.buildUrl('/reports/stock-balance/pdf');
+    final csvUrl       = widget.repo.buildUrl('/reports/stock-balance/csv');
+
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -282,7 +413,12 @@ class _StockReportTabState extends State<_StockReportTab> {
           child: ListView(padding: const EdgeInsets.all(16), children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('Current Stock Balance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
-              IconButton(icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary), onPressed: _load),
+              Row(children: [
+                _ExportBtn(label: 'PDF', icon: Icons.picture_as_pdf_rounded, color: Colors.red, url: pdfUrl),
+                const SizedBox(width: 6),
+                _ExportBtn(label: 'CSV', icon: Icons.table_chart_rounded, color: Colors.green, url: csvUrl),
+                IconButton(icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary), onPressed: _load),
+              ]),
             ]),
             const SizedBox(height: 8),
             if (_loading)
@@ -306,24 +442,29 @@ class _StockReportTabState extends State<_StockReportTab> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.06), borderRadius: const BorderRadius.vertical(top: Radius.circular(10))),
-                    child: const Row(children: [
-                      Expanded(flex: 3, child: Text('Product', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
-                      Expanded(flex: 2, child: Text('Packages', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
-                      Expanded(flex: 2, child: Text('Kg', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
-                      Expanded(flex: 3, child: Text('Value (TZS)', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+                    child: Row(children: [
+                      const Expanded(flex: 3, child: Text('Product', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+                      const Expanded(flex: 2, child: Text('Pkgs', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+                      const Expanded(flex: 2, child: Text('Kg', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+                      const Expanded(flex: 3, child: Text('Value', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+                      if (hasCost) const Expanded(flex: 2, child: Text('Margin', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
                     ]),
                   ),
                   ...(_items.asMap().entries.map((e) {
                     final i = e.key; final item = e.value;
-                    final low = item.packages < 5;
+                    final low    = item.packages < 5;
+                    final margin = item.profitMargin;
                     return Column(children: [
                       if (i > 0) const Divider(height: 1, color: AppTheme.border),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Row(children: [
                           Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             Text('${item.packageSize}kg/pkg', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            if (item.buyingPrice != null)
+                              Text('Cost: TZS ${FormatUtils.currency(item.buyingPrice!)}',
+                                  style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
                           ])),
                           Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                             if (low) const Icon(Icons.warning_amber_rounded, size: 13, color: AppTheme.warning),
@@ -332,6 +473,15 @@ class _StockReportTabState extends State<_StockReportTab> {
                           ])),
                           Expanded(flex: 2, child: Text(item.currentStock.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
                           Expanded(flex: 3, child: Text(FormatUtils.currency(item.stockValue), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.success, fontSize: 13))),
+                          if (hasCost) Expanded(flex: 2, child: Text(
+                            margin != null ? '${margin.toStringAsFixed(0)}%' : '—',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                color: margin == null ? AppTheme.textSecondary
+                                    : margin >= 20 ? Colors.green
+                                    : margin >= 5  ? Colors.orange
+                                    : Colors.red),
+                          )),
                         ]),
                       ),
                     ]);
@@ -344,6 +494,7 @@ class _StockReportTabState extends State<_StockReportTab> {
                       Expanded(flex: 2, child: Text(totalPkgs.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary))),
                       const Expanded(flex: 2, child: SizedBox()),
                       Expanded(flex: 3, child: Text(FormatUtils.currency(totalValue), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.success, fontSize: 14))),
+                      if (hasCost) const Expanded(flex: 2, child: SizedBox()),
                     ]),
                   ),
                 ]),

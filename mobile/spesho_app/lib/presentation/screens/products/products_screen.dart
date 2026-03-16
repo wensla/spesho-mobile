@@ -51,6 +51,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final nameCtrl = TextEditingController(text: product?.name ?? '');
     final priceCtrl =
         TextEditingController(text: product?.unitPrice.toString() ?? '');
+    final buyingPriceCtrl = TextEditingController(
+        text: product?.buyingPrice != null ? product!.buyingPrice.toString() : '');
     String selectedCategory = product?.category ?? 'unga';
     int selectedPackageSize = product?.packageSize ?? 5;
     final formKey = GlobalKey<FormState>();
@@ -124,6 +126,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: buyingPriceCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Buying/Cost Price (optional)', prefixText: 'TZS '),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return null;
+                      final p = double.tryParse(v);
+                      if (p == null) return 'Invalid price';
+                      if (p < 0) return 'Cannot be negative';
+                      return null;
+                    },
+                  ),
                   // Package size only for unga
                   if (isUnga) ...[
                     const SizedBox(height: 16),
@@ -169,13 +185,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   final name = nameCtrl.text.trim();
                   final price = double.parse(priceCtrl.text.trim());
                   final pkgSize = isUnga ? selectedPackageSize : 1;
+                  final buyingPrice = buyingPriceCtrl.text.trim().isEmpty
+                      ? null
+                      : double.tryParse(buyingPriceCtrl.text.trim());
                   final prov = context.read<ProductProvider>();
                   bool ok;
                   if (product == null) {
-                    ok = await prov.createProduct(name, price, packageSize: pkgSize, category: selectedCategory);
+                    ok = await prov.createProduct(name, price, packageSize: pkgSize, category: selectedCategory, buyingPrice: buyingPrice);
                   } else {
                     ok = await prov.updateProduct(product.id,
-                        name: name, price: price, packageSize: pkgSize, category: selectedCategory);
+                        name: name, price: price, packageSize: pkgSize, category: selectedCategory, buyingPrice: buyingPrice);
                   }
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);

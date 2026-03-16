@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../utils/speech_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (ok) {
       final user = context.read<AuthProvider>().user;
       if (user != null) {
-        SpeechService.welcome(user.displayName, user.role, gender: user.gender);
       }
       Navigator.pushReplacementNamed(context, '/home');
     } else {

@@ -5,6 +5,7 @@ class ProductModel extends ProductEntity {
     required super.id,
     required super.name,
     required super.unitPrice,
+    super.buyingPrice,
     super.isActive = true,
     super.currentStock,
     super.packageSize = 5,
@@ -15,6 +16,9 @@ class ProductModel extends ProductEntity {
         id: j['id'],
         name: j['name'],
         unitPrice: (j['unit_price'] as num).toDouble(),
+        buyingPrice: j['buying_price'] != null
+            ? (j['buying_price'] as num).toDouble()
+            : null,
         isActive: j['is_active'] ?? true,
         currentStock: j['current_stock'] != null
             ? (j['current_stock'] as num).toDouble()
@@ -27,6 +31,7 @@ class ProductModel extends ProductEntity {
         'id': id,
         'name': name,
         'unit_price': unitPrice,
+        'buying_price': buyingPrice,
         'package_size': packageSize,
         'category': category,
         'is_active': isActive,

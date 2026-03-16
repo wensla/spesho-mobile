@@ -23,17 +23,17 @@ class UserAvatar extends StatefulWidget {
   });
 
   /// Real human portrait photo — gender-specific, consistent per username.
+  /// female users → women photo · male/unset users → men photo
   static String avatarUrl(String username, {int size = 80, String? gender}) {
-    // Hash username to a stable index 0–99
+    // Hash username → stable index 0-98 so same user always gets same face
     int hash = 0;
     for (final c in username.toLowerCase().trim().codeUnits) {
       hash = (hash * 31 + c) & 0xFFFFFFFF;
     }
     final index = hash % 99;
     final category = gender == 'female' ? 'women' : 'men';
-    // wsrv.nl proxies the image and adds Access-Control-Allow-Origin: *
-    // so Flutter web CanvasKit can render it without CORS errors
-    return 'https://wsrv.nl/?url=randomuser.me/api/portraits/$category/$index.jpg&w=$size&h=$size&fit=cover&output=jpg';
+    // wsrv.nl proxy adds Access-Control-Allow-Origin:* so Flutter CanvasKit loads it
+    return 'https://wsrv.nl/?url=randomuser.me/api/portraits/$category/$index.jpg';
   }
 
   @override
@@ -87,8 +87,7 @@ class _UserAvatarState extends State<UserAvatar>
           padding: widget.showRing ? const EdgeInsets.all(2.5) : EdgeInsets.zero,
           child: ClipOval(
             child: Image.network(
-              UserAvatar.avatarUrl(widget.username,
-                  size: (widget.radius * 4).toInt(), gender: widget.gender),
+              UserAvatar.avatarUrl(widget.username, gender: widget.gender),
               width: size,
               height: size,
               fit: BoxFit.cover,
