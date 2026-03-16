@@ -31484,11 +31484,13 @@ aKs:function aKs(a,b){this.a=a
 this.b=b},
 aKu:function aKu(a){this.a=a},
 aWs(a,b,c,d,e,f){return new A.In(f,a,b,c,!0,d,null)},
-b8E(a,b,c){var s,r,q,p,o
+b8E(a,b,c){var s,r,q,p,o,n
 for(s=new A.ho(B.c.cn(a.toLowerCase())),r=t.Hz,s=new A.bq(s,s.gA(0),r.h("bq<a8.E>")),r=r.h("a8.E"),q=0;s.v();){p=s.d
 if(p==null)p=r.a(p)
 q=q*31+p>>>0}o=B.f.b1(q,99)
-return"https://randomuser.me/api/portraits/"+(b==="female"?"women":"men")+"/"+o+".jpg"},
+n=b==="female"?"women":"men"
+s=""+c
+return"https://wsrv.nl/?url=randomuser.me/api/portraits/"+n+"/"+o+".jpg&w="+s+"&h="+s+"&fit=cover&output=jpg"},
 In:function In(a,b,c,d,e,f,g){var _=this
 _.c=a
 _.d=b
