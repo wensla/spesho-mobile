@@ -49,14 +49,14 @@ class _UsersScreenState extends State<UsersScreen> {
     final userCtrl = TextEditingController(text: user?.username ?? '');
     final passCtrl = TextEditingController();
     final isSuperAdmin = context.read<AuthProvider>().isSuperAdmin;
-    // Normalise legacy role value
     String role = (user?.role == 'salesperson') ? 'seller' : (user?.role ?? 'seller');
     String? gender = user?.gender;
-    // Super admin can assign manager or seller; manager can only assign seller
+
     final roleOptions = isSuperAdmin
         ? const [
+            DropdownMenuItem(value: 'super_admin', child: Text('Super Admin')),
             DropdownMenuItem(value: 'manager', child: Text('Manager')),
-            DropdownMenuItem(value: 'seller',  child: Text('Seller')),
+            DropdownMenuItem(value: 'seller', child: Text('Seller')),
           ]
         : const [
             DropdownMenuItem(value: 'seller', child: Text('Seller')),
@@ -68,7 +68,12 @@ class _UsersScreenState extends State<UsersScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: Text(user == null ? 'Add User' : 'Edit User'),
+          title: Row(children: [
+            Icon(user == null ? Icons.person_add : Icons.edit,
+                color: AppTheme.primary, size: 22),
+            const SizedBox(width: 8),
+            Text(user == null ? 'Add User' : 'Edit User'),
+          ]),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -76,7 +81,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 if (user == null)
                   TextFormField(
                     controller: userCtrl,
-                    decoration: const InputDecoration(labelText: 'Username'),
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.alternate_email),
+                    ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
                       if (v.trim().length < 3) return 'At least 3 characters';
@@ -86,7 +94,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -96,35 +107,34 @@ class _UsersScreenState extends State<UsersScreen> {
                     labelText: user == null
                         ? 'Password'
                         : 'New Password (leave blank to keep)',
+                    prefixIcon: const Icon(Icons.lock_outline),
                   ),
                   validator: (v) {
-                    if (user == null && (v == null || v.isEmpty)) {
-                      return 'Password required';
-                    }
-                    if (v != null && v.isNotEmpty && v.length < 6) {
-                      return 'At least 6 characters';
-                    }
+                    if (user == null && (v == null || v.isEmpty)) return 'Password required';
+                    if (v != null && v.isNotEmpty && v.length < 6) return 'At least 6 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 10),
-                // ignore: deprecated_member_use
                 DropdownButtonFormField<String>(
-                  value: role,
-                  decoration: const InputDecoration(labelText: 'Role'),
+                  initialValue: role,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    prefixIcon: Icon(Icons.admin_panel_settings_outlined),
+                  ),
                   items: roleOptions,
                   onChanged: (v) => setS(() => role = v!),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String?>(
-                  value: gender,
+                  initialValue: gender,
                   decoration: const InputDecoration(
                     labelText: 'Gender',
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                   items: const [
-                    DropdownMenuItem(value: null,     child: Text('Not specified')),
-                    DropdownMenuItem(value: 'male',   child: Text('Male')),
+                    DropdownMenuItem(value: null, child: Text('Not specified')),
+                    DropdownMenuItem(value: 'male', child: Text('Male')),
                     DropdownMenuItem(value: 'female', child: Text('Female')),
                   ],
                   onChanged: (v) => setS(() => gender = v),
@@ -163,9 +173,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 } catch (e) {
                   if (!ctx.mounted) return;
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                        content: Text(e.toString()),
-                        backgroundColor: AppTheme.error),
+                    SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
                   );
                 }
               },
@@ -175,6 +183,43 @@ class _UsersScreenState extends State<UsersScreen> {
         ),
       ),
     );
+  }
+
+
+  Future<void> _deleteUser(UserModel u) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete User?'),
+        content: Text(
+            'This will permanently delete "${u.displayName}". This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _api.delete('/users/${u.id}');
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+        );
+      }
+    }
+  }
+
+  Color _roleColor(UserModel u) {
+    if (u.isSuperAdmin) return AppTheme.error;
+    if (u.isManager) return AppTheme.primary;
+    return AppTheme.accent;
   }
 
   @override
@@ -188,81 +233,131 @@ class _UsersScreenState extends State<UsersScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 80),
-                    itemCount: _users.length,
-                    itemBuilder: (_, i) {
-                final u = _users[i];
-                return Card(
-                  child: ListTile(
-                    leading: UserAvatar(
-                      username: u.username,
-                      displayName: u.displayName,
-                      gender: u.gender,
-                      radius: 22,
-                      showRing: true,
-                      ringColor: u.isSuperAdmin
-                          ? AppTheme.error
-                          : u.isManager
-                              ? AppTheme.primary
-                              : AppTheme.accent,
-                    ),
-                    title: Text(u.displayName,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('@${u.username}'),
-                        if (u.isSeller && u.shopName != null)
-                          Row(children: [
-                            Icon(Icons.store_rounded, size: 12, color: Colors.grey[500]),
-                            const SizedBox(width: 3),
-                            Text(u.shopName!,
-                                style: TextStyle(fontSize: 12, color: Colors.grey[700],
-                                    fontWeight: FontWeight.w500)),
-                            if (u.shopLocation != null) ...[
-                              const SizedBox(width: 6),
-                              Icon(Icons.location_on_rounded, size: 12, color: Colors.grey[400]),
-                              const SizedBox(width: 2),
-                              Text(u.shopLocation!,
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-                            ],
-                          ])
-                        else
-                          Chip(
-                            label: Text(u.roleLabel,
-                                style: const TextStyle(fontSize: 10)),
-                            backgroundColor: u.isSuperAdmin
-                                ? AppTheme.error.withValues(alpha: 0.1)
-                                : u.isManager
-                                    ? AppTheme.primary.withValues(alpha: 0.1)
-                                    : AppTheme.accent.withValues(alpha: 0.1),
-                            padding: EdgeInsets.zero,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          : _users.isEmpty
+              ? const Center(
+                  child: Text('No users found.',
+                      style: TextStyle(color: AppTheme.textSecondary)))
+              : Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 80),
+                      itemCount: _users.length,
+                      itemBuilder: (_, i) {
+                        final u = _users[i];
+                        final roleColor = _roleColor(u);
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+                            leading: Stack(
+                              children: [
+                                UserAvatar(
+                                  username: u.username,
+                                  displayName: u.displayName,
+                                  gender: u.gender,
+                                  radius: 24,
+                                  showRing: true,
+                                  ringColor: roleColor,
+                                ),
+                                if (!u.isActive)
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: const BoxDecoration(
+                                          color: Colors.white, shape: BoxShape.circle),
+                                      child: const Icon(Icons.block,
+                                          size: 12, color: Colors.red),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            title: Row(children: [
+                              Expanded(
+                                child: Text(u.displayName,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: u.isActive ? null : Colors.grey,
+                                    )),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: roleColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  u.roleLabel,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: roleColor),
+                                ),
+                              ),
+                            ]),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('@${u.username}',
+                                    style: TextStyle(
+                                        color: u.isActive
+                                            ? AppTheme.textSecondary
+                                            : Colors.grey[400])),
+                                if (u.isSeller && u.shopName != null)
+                                  Row(children: [
+                                    Icon(Icons.store_rounded,
+                                        size: 12, color: Colors.grey[500]),
+                                    const SizedBox(width: 3),
+                                    Text(u.shopName!,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[700],
+                                            fontWeight: FontWeight.w500)),
+                                    if (u.shopLocation != null) ...[
+                                      const SizedBox(width: 6),
+                                      Icon(Icons.location_on_rounded,
+                                          size: 12, color: Colors.grey[400]),
+                                      const SizedBox(width: 2),
+                                      Text(u.shopLocation!,
+                                          style: TextStyle(
+                                              fontSize: 11, color: Colors.grey[500])),
+                                    ],
+                                  ]),
+                                if (!u.isActive)
+                                  const Text('Inactive',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                            isThreeLine: true,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined,
+                                      color: AppTheme.primary),
+                                  tooltip: 'Edit',
+                                  onPressed: () => _showUserDialog(user: u),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      color: Colors.red),
+                                  tooltip: 'Delete',
+                                  onPressed: () => _deleteUser(u),
+                                ),
+                              ],
+                            ),
                           ),
-                      ],
+                        );
+                      },
                     ),
-                    isThreeLine: true,
-                    trailing: u.isActive
-                        ? IconButton(
-                            icon: const Icon(Icons.edit, color: AppTheme.primary),
-                            onPressed: () => _showUserDialog(user: u),
-                          )
-                        : const Chip(
-                            label: Text('Inactive',
-                                style: TextStyle(fontSize: 10)),
-                            backgroundColor: Color(0xFFFFCDD2),
-                          ),
                   ),
-                );
-              },
                 ),
-              ),
-            ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'users_fab',
         onPressed: () => _showUserDialog(),

@@ -31,8 +31,9 @@ class UserAvatar extends StatefulWidget {
     }
     final index = hash % 99;
     final category = gender == 'female' ? 'women' : 'men';
-    // randomuser.me portraits: real human face photos, CORS-safe for Flutter web
-    return 'https://randomuser.me/api/portraits/$category/$index.jpg';
+    // wsrv.nl proxies the image and adds Access-Control-Allow-Origin: *
+    // so Flutter web CanvasKit can render it without CORS errors
+    return 'https://wsrv.nl/?url=randomuser.me/api/portraits/$category/$index.jpg&w=$size&h=$size&fit=cover&output=jpg';
   }
 
   @override
