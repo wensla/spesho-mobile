@@ -6,6 +6,7 @@ import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/products/products_screen.dart';
 import '../screens/stock/stock_in_screen.dart';
 import '../screens/stock/stock_balance_screen.dart';
+import '../screens/stock/stock_adjust_screen.dart';
 import '../screens/sales/sales_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/users/users_screen.dart';
@@ -37,6 +38,7 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(Icons.inventory_2_rounded, 'Products'),
     _NavItem(Icons.point_of_sale_rounded, 'Sales'),
     _NavItem(Icons.add_box_rounded, 'Stock In'),
+    _NavItem(Icons.tune_rounded, 'Adjust'),
     _NavItem(Icons.warehouse_rounded, 'Stock'),
     _NavItem(Icons.bar_chart_rounded, 'Reports'),
     _NavItem(Icons.account_balance_wallet_rounded, 'Debts'),
@@ -50,6 +52,7 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(Icons.inventory_2_rounded, 'Products'),
     _NavItem(Icons.point_of_sale_rounded, 'Sales'),
     _NavItem(Icons.add_box_rounded, 'Stock In'),
+    _NavItem(Icons.tune_rounded, 'Adjust'),
     _NavItem(Icons.warehouse_rounded, 'Stock'),
     _NavItem(Icons.bar_chart_rounded, 'Reports'),
     _NavItem(Icons.account_balance_wallet_rounded, 'Debts'),
@@ -68,6 +71,7 @@ class _HomeShellState extends State<HomeShell> {
     ProductsScreen(),
     SalesScreen(),
     StockInScreen(),
+    StockAdjustScreen(),
     StockBalanceScreen(),
     ReportsScreen(),
     DebtsScreen(),
@@ -80,6 +84,7 @@ class _HomeShellState extends State<HomeShell> {
     ProductsScreen(),
     SalesScreen(),
     StockInScreen(),
+    StockAdjustScreen(),
     StockBalanceScreen(),
     ReportsScreen(),
     DebtsScreen(),

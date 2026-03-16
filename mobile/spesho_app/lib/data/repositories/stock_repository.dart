@@ -75,4 +75,22 @@ class StockRepository implements IStockRepository {
         .map<StockMovementEntity>((e) => StockMovementModel.fromJson(e))
         .toList();
   }
+
+  @override
+  Future<StockInResult> stockAdjust({
+    required int productId,
+    required double newQuantity,
+    String? reason,
+  }) async {
+    final body = <String, dynamic>{
+      'product_id': productId,
+      'new_quantity': newQuantity,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    };
+    final res = await _api.post('/stock/adjust', body);
+    return StockInResult(
+      newBalance: (res['new_balance'] as num).toDouble(),
+      message: res['message'] ?? 'Stock adjusted',
+    );
+  }
 }

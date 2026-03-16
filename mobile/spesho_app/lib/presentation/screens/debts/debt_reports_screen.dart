@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/network/api_client.dart';
+import '../../../data/datasources/auth_local_datasource.dart';
+import '../../../data/repositories/reports_repository.dart';
 import '../../providers/debt_provider.dart';
 import '../../../domain/entities/debt_entity.dart';
 
@@ -14,11 +18,13 @@ class DebtReportsScreen extends StatefulWidget {
 class _DebtReportsScreenState extends State<DebtReportsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
+  late ReportsRepository _repo;
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
+    _repo = ReportsRepository(ApiClient(AuthLocalDatasource()));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DebtProvider>().loadReports();
     });
@@ -28,6 +34,26 @@ class _DebtReportsScreenState extends State<DebtReportsScreen>
   void dispose() {
     _tabs.dispose();
     super.dispose();
+  }
+
+  void _showExportDialog(String title, String pdfPath, String csvPath) {
+    final pdfUrl = _repo.buildUrl(pdfPath);
+    final csvUrl = _repo.buildUrl(csvPath);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(title),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          _ExportUrlTile(label: 'PDF', icon: Icons.picture_as_pdf_rounded, color: AppTheme.error, url: pdfUrl),
+          const SizedBox(height: 10),
+          _ExportUrlTile(label: 'CSV', icon: Icons.table_chart_rounded, color: Colors.green, url: csvUrl),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+        ],
+      ),
+    );
   }
 
   @override
@@ -44,6 +70,15 @@ class _DebtReportsScreenState extends State<DebtReportsScreen>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export',
+            onPressed: () => _showExportDialog(
+              'Export Debts',
+              '/reports/debts/pdf',
+              '/reports/debts/csv',
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<DebtProvider>().loadReports(),
@@ -271,6 +306,49 @@ class _PeriodList extends StatelessWidget {
           ]),
         );
       },
+    );
+  }
+}
+
+// ── Export URL tile ───────────────────────────────────────────────────────────
+class _ExportUrlTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final String url;
+  const _ExportUrlTile({required this.label, required this.icon, required this.color, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '$label: $url',
+            style: const TextStyle(fontSize: 11),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy, size: 18),
+          tooltip: 'Copy URL',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: url));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$label URL copied'), duration: const Duration(seconds: 2)),
+            );
+          },
+        ),
+      ]),
     );
   }
 }

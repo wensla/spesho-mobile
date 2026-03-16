@@ -68,6 +68,32 @@ class StockProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> stockAdjust({
+    required int productId,
+    required double newQuantity,
+    String? reason,
+  }) async {
+    _loading = true;
+    _error = null;
+    _successMessage = null;
+    notifyListeners();
+    try {
+      final result = await _useCases.stockAdjust(
+        productId: productId,
+        newQuantity: newQuantity,
+        reason: reason,
+      );
+      _successMessage = 'Stock adjusted. New balance: ${result.newBalance.toStringAsFixed(2)} kg';
+      await loadBalances();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _loading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> loadMovements({int? productId, String? type}) async {
     _loading = true;
     notifyListeners();

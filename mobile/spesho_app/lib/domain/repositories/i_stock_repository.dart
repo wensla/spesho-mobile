@@ -18,4 +18,10 @@ abstract class IStockRepository {
     String? type,
     int page,
   });
+
+  Future<StockInResult> stockAdjust({
+    required int productId,
+    required double newQuantity,
+    String? reason,
+  });
 }

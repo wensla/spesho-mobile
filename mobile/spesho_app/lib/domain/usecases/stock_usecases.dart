@@ -45,13 +45,30 @@ class GetStockMovementsUseCase {
       );
 }
 
+class StockAdjustUseCase {
+  final IStockRepository _repo;
+  StockAdjustUseCase(this._repo);
+  Future<StockInResult> call({
+    required int productId,
+    required double newQuantity,
+    String? reason,
+  }) =>
+      _repo.stockAdjust(
+        productId: productId,
+        newQuantity: newQuantity,
+        reason: reason,
+      );
+}
+
 class StockUseCases {
   final StockInUseCase stockIn;
   final GetStockBalanceUseCase getBalance;
   final GetStockMovementsUseCase getMovements;
+  final StockAdjustUseCase stockAdjust;
 
   StockUseCases(IStockRepository repo)
       : stockIn = StockInUseCase(repo),
         getBalance = GetStockBalanceUseCase(repo),
-        getMovements = GetStockMovementsUseCase(repo);
+        getMovements = GetStockMovementsUseCase(repo),
+        stockAdjust = StockAdjustUseCase(repo);
 }
