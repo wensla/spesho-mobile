@@ -389,35 +389,33 @@ class _UsersScreenState extends State<UsersScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Edit
                                 IconButton(
                                   icon: const Icon(Icons.edit_outlined,
                                       color: AppTheme.primary),
                                   tooltip: 'Edit',
                                   onPressed: () => _showUserDialog(user: u),
                                 ),
-                                // SRS 3.1: Super Admin activate/deactivate
-                                if (_isSuperAdmin)
-                                  IconButton(
-                                    icon: Icon(
-                                      u.isActive
-                                          ? Icons.person_off_outlined
-                                          : Icons.person_outlined,
-                                      color: u.isActive
-                                          ? Colors.orange
-                                          : Colors.green,
-                                    ),
-                                    tooltip: u.isActive ? 'Deactivate' : 'Activate',
-                                    onPressed: () => _toggleActive(u),
+                                // Activate / Deactivate
+                                IconButton(
+                                  icon: Icon(
+                                    u.isActive
+                                        ? Icons.person_off_outlined
+                                        : Icons.person_outlined,
+                                    color: u.isActive
+                                        ? Colors.orange
+                                        : Colors.green,
                                   ),
-                                // SRS 3.2: Manager remove seller
-                                if (!_isSuperAdmin)
-                                  IconButton(
-                                    icon: const Icon(
-                                        Icons.person_remove_outlined,
-                                        color: Colors.red),
-                                    tooltip: 'Remove Seller',
-                                    onPressed: () => _deleteSeller(u),
-                                  ),
+                                  tooltip: u.isActive ? 'Deactivate' : 'Activate',
+                                  onPressed: () => _toggleActive(u),
+                                ),
+                                // Delete
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      color: Colors.red),
+                                  tooltip: 'Delete',
+                                  onPressed: () => _deleteSeller(u),
+                                ),
                               ],
                             ),
                           ),
